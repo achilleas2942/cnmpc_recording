@@ -20,7 +20,6 @@ spec:
         - name: recording-container
           image: ghcr.io/achilleas2942/cnmpc-recording:latest
           resources:
-          command: ["/bin/bash", "-c", "./root/catkin_ws/src/cnmpc_recording/src/run_k8s_resource_metrics.sh"]
           env:
             - name: ROS_IP
               valueFrom:

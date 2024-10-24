@@ -20,8 +20,5 @@ cd /
 # Source the workspace
 source /root/catkin_ws/devel/setup.bash
 
-# Make run_k8s_resource_metrics.sh executable
-chmod +x /root/catkin_ws/src/cnmpc_recording/src/run_k8s_resource_metrics.sh
-
-# Execute the provided command
-exec "$@"
+# Run the command passed in the Kubernetes pod spec or default to running the metrics script
+python3 /root/catkin_ws/src/cnmpc_recording/src/k8s_resource_metrics.py
