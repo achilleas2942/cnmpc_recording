@@ -15,9 +15,13 @@ fi
 # Build the workspace
 cd /root/catkin_ws/
 catkin_make
+cd /
 
 # Source the workspace
 source /root/catkin_ws/devel/setup.bash
+
+# Make run_k8s_resource_metrics.sh executable
+chmod +x /root/catkin_ws/src/cnmpc_recording/src/run_k8s_resource_metrics.sh
 
 # Execute the provided command
 exec "$@"
