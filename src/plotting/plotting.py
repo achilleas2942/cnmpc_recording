@@ -8,6 +8,34 @@ from scipy.signal import medfilt
 from scipy.interpolate import interp1d
 
 
+window_size = 1000
+
+# Function to compute the sliding window average
+def sliding_window_average(data, window_size):
+    averages = []
+    window = []
+
+    for value in data:
+        window.append(value)
+        if len(window) > window_size:
+            window.pop(0)  # Remove the oldest value to keep the window size constant
+        if len(window) == window_size:
+            averages.append(sum(window) / window_size)
+        else:
+            averages.append(np.nan)  # To keep the array lengths the same, append NaN for initial values
+    return averages
+
+def clean_data(time_array, data_array):
+    # Ensure arrays are 1D and convert to float
+    time_array = np.asarray(time_array, dtype=float).ravel()
+    data_array = np.asarray(data_array, dtype=float).ravel()
+    
+    # Mask to keep only finite values in both arrays
+    mask = np.isfinite(time_array) & np.isfinite(data_array)
+    
+    # Return only valid (finite) data points
+    return time_array[mask], data_array[mask]
+
 def call_main():
     # Load the bag file
     bag_file = "/home/oem/Downloads/testing5.bag"
@@ -85,19 +113,24 @@ def call_main():
         av_rtt = data_storage["/av_rtt"]
         av_rtt = np.array(list(zip(av_rtt["data"])))
 
-    # Interpolate av_downlink, av_uplink, and solver_time to a common time base
-    min_time = max(time_avd[0], time_avu[0], time_s[0])  # Start at the max of start times
-    max_time = min(time_avd[-1], time_avu[-1], time_s[-1])  # End at the min of end times
+    try:
+        time_avd, av_downlink = clean_data(time_avd, av_downlink)
+        time_avu, av_uplink = clean_data(time_avu, av_uplink)
+        time_s, solver_time = clean_data(time_s, solver_time)
+    except Exception as e:
+        print("Error during data cleaning:", e)
+        return
 
-    # Define a common time base with a chosen frequency
-    common_time = np.linspace(min_time, max_time, min(len(time_avd), len(time_avu), len(time_s)))
+    # Define a common time base
+    min_time = float(max(time_avd[0], time_avu[0], time_s[0]))
+    max_time = float(min(time_avd[-1], time_avu[-1], time_s[-1]))
+    num_points = min(len(time_avd), len(time_avu), len(time_s))
 
-    # Interpolate each dataset to the common time base
+    common_time = np.linspace(min_time, max_time, num_points)
+
     av_downlink_interp = interp1d(time_avd, av_downlink, kind="linear", fill_value="extrapolate")(common_time)
     av_uplink_interp = interp1d(time_avu, av_uplink, kind="linear", fill_value="extrapolate")(common_time)
     solver_time_interp = interp1d(time_s, solver_time, kind="linear", fill_value="extrapolate")(common_time)
-
-    # Calculate Round Trip Time (RTT)
     round_trip_time = av_downlink_interp + av_uplink_interp + solver_time_interp
 
     if "/equilibrium_resources" in data_storage:
@@ -130,49 +163,48 @@ def call_main():
         time_u = uplink_delay["Time"]
         uplink_delay = np.array(uplink_delay["stamp.nsecs"]) * 1e-9
 
+    solver_time_avg = sliding_window_average(solver_time, window_size)
+    round_trip_time_avg = sliding_window_average(round_trip_time, window_size)
+
     # Plotting
     with plt.style.context(["science", "ieee"]):
+        fig, axs = plt.subplots(4, 1, figsize=(8, 12), sharex=True)  # 4 rows, 1 column, shared x-axis
+
         # Plot Downlink delay
-        plt.figure()
-        plt.plot(time_d, downlink_delay, color="red", alpha=0.6, label="average")
-        plt.plot(time_avd, av_downlink, color="red", label="downlink delay")
-        plt.ylabel("(a) Downlink delay (s)", fontsize=12)
-        plt.xticks(fontsize=10)
-        plt.yticks(fontsize=10)
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
+        axs[0].plot(time_d, downlink_delay, color="red", alpha=0.6, label="average")
+        axs[0].plot(time_avd, av_downlink, color="red", label="downlink delay")
+        axs[0].set_ylabel("Downlink delay (s)", fontsize=12)
+        # axs[0].legend(loc="upper right")
+        axs[0].grid(True)
 
         # Plot Uplink delay
-        plt.figure()
-        plt.plot(time_u, uplink_delay, color="red", alpha=0.6, label="average")
-        plt.plot(time_avu, av_uplink, color="red", label="downlink delay")
-        plt.ylabel("(a) Uplink delay (s)", fontsize=12)
-        plt.xticks(fontsize=10)
-        plt.yticks(fontsize=10)
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
+        axs[1].plot(time_u, uplink_delay, color="blue", alpha=0.6, label="average")
+        axs[1].plot(time_avu, av_uplink, color="blue", label="uplink delay")
+        axs[1].set_ylabel("Uplink delay (s)", fontsize=12)
+        # axs[1].legend(loc="upper right")
+        axs[1].grid(True)
 
         # Plot Solver time
-        plt.figure()
-        plt.plot(time_s, solver_time, color="red", label="average")
-        plt.ylabel("(a) Solver time (s)", fontsize=12)
-        plt.xticks(fontsize=10)
-        plt.yticks(fontsize=10)
-        plt.grid(True)
+        axs[2].plot(time_s, solver_time, color="green", alpha=0.6, label="average")
+        axs[2].plot(time_s, solver_time_avg, color="green", label="solver time")
+        axs[2].set_ylabel("Solver time (s)", fontsize=12)
+        # axs[2].legend(loc="upper right")
+        axs[2].grid(True)
+
+        # Plot Round-trip time
+        axs[3].plot(common_time, round_trip_time, color="black", alpha=0.6, label="average")
+        axs[3].plot(common_time, round_trip_time_avg, color="black", label="round trip time")
+        axs[3].set_ylabel("Round trip time (s)", fontsize=12)
+        # axs[3].legend(loc="upper right")
+        axs[3].grid(True)
+
+        # Set common x-axis label
+        axs[3].set_xlabel("Time (s)", fontsize=12)
+        
+        # Adjust layout for tight spacing
         plt.tight_layout()
         plt.show()
 
-        # Plot Round-trip time
-        plt.figure()
-        plt.plot(common_time, round_trip_time, color="red", label="average")
-        plt.ylabel("(a) Round trip time (s)", fontsize=12)
-        plt.xticks(fontsize=10)
-        plt.yticks(fontsize=10)
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
 
 
 if __name__ == "__main__":
