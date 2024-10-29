@@ -42,6 +42,8 @@ def call_main():
     # Load the bag file
     bag_file = "/home/oem/Downloads/testing5.bag"
     b = bagreader(bag_file)
+    counter = 0
+    counter2 = 0
 
     # List of topics to read from the bag file
     topic_list = [
@@ -147,7 +149,42 @@ def call_main():
 
     if "/time_resources" in data_storage:
         time_resources = data_storage["/time_resources"]
-        time_resources = np.array(list(zip(time_resources["data"])))
+        time_r = np.array(time_resources["Time"])
+        time_resources = np.array(time_resources["data"])
+        resources = np.zeros(len(time_resources))
+        for i in range (0, len(time_resources)-1):
+            if time_r[i] < 4.95:
+                resources[i] = 1500
+                time_resources[i] = 0
+        for i in range (0, len(time_resources)-1):
+            if time_resources[i] < 3000:
+                resources[i] = 1500
+            elif time_resources[i] >= 3000 and time_resources[i] <= 5000:
+                resources[i] = 3500
+            else:
+                resources[i] = 6000
+        for i in range (0, len(resources)-1):
+            counter2 = counter2 + 1
+            if resources[i] == 3500:
+                resources[i] = 1500
+                counter = counter + 1
+            if counter > 500:
+                break
+        for i in range (counter2, len(resources)-1):
+            if resources[i] == 3500:
+                counter3 = i + 1
+                resources[i] = time_resources[counter2]
+        for i in range (counter3, len(resources)-1):
+            counter4 = i + 1
+            if resources[i] == 6000:
+                resources[i] = time_resources[counter2]
+                counter = counter + 1
+            if counter > 1000:
+                break
+        for i in range (counter4, len(resources)-1):
+            resources[i] = time_resources[counter4]
+        time_r[len(resources)-1] = 240
+        resources[len(resources)-1] = time_resources[counter4]
 
     if "/time_error" in data_storage:
         time_error = data_storage["/time_error"]
@@ -188,53 +225,75 @@ def call_main():
 
     # Plotting
     with plt.style.context(["science", "ieee"]):
-        fig, axs = plt.subplots(4, 1, figsize=(8, 3), sharex=True)
+        fig, axs = plt.subplots(5, 1, figsize=(8, 5.2), sharex=True)
 
         for ax in axs:
-            ax.tick_params(axis='both', labelsize=6)
+            ax.tick_params(axis='both', labelsize=8)
 
         # Plot Uplink delay
         axs[0].plot(time_u, uplink_delay, color="blue", alpha=0.5, label="average")
         axs[0].plot(time_avu, av_uplink, color="blue", label="uplink delay")
         axs[0].set_ylim(0.16, 0.4)
-        axs[0].set_ylabel("(a) Uplink (s)", fontsize=7)
+        axs[0].set_yticks([0.20, 0.30, 0.40])
+        axs[0].set_ylabel(r'(a) $\tau_{u} \, (s)$', fontsize=10)
         axs[0].grid(True)
 
         # Plot Downlink delay
         axs[1].plot(time_d, downlink_delay, color="red", alpha=0.5, label="average")
         axs[1].plot(time_avd, av_downlink, color="red", label="downlink delay")
-        axs[1].set_ylabel("(b) Downlink (s)", fontsize=7)
+        axs[1].set_ylim(0.004, 0.026)
+        axs[1].set_yticks([0.005, 0.015, 0.025])
+        axs[1].set_ylabel(r'(b) $\tau_{d} \, (s)$', fontsize=10)
         axs[1].grid(True)
 
         # Plot Solver time
         axs[2].plot(time_s, solver_time, color="green", alpha=0.5, label="average")
         axs[2].plot(time_s, solver_time_avg, color="green", label="solver time")
-        axs[2].set_ylabel("(c) Solver (s)", fontsize=7)
+        axs[2].set_ylim(-0.005, 0.055)
+        axs[2].set_yticks([0.0, 0.025, 0.050])
+        axs[2].set_ylabel(r'(c) $\tau_{r} \, (s)$', fontsize=10)
         axs[2].grid(True)
 
         # Plot Round-trip time
         axs[3].plot(common_time, round_trip_time, color="black", alpha=0.5, label="average")
         axs[3].plot(common_time, round_trip_time_avg, color="black", label="round trip time")
         axs[3].axhline(y=0.274, color="orange", linestyle="--", label="maximum allowable delay")
-        axs[3].set_ylabel("(d) Round trip (s)", fontsize=7)
+        axs[3].set_ylim(0.19, 0.31)
+        axs[3].set_yticks([0.20, 0.25, 0.30])
+        axs[3].set_ylabel(r'(d) $\tau_{rtt} \, (s)$', fontsize=10)
         axs[3].grid(True)
+        
+        # Plot Resources
+        axs[4].plot(time_r, time_resources, color="magenta", label="resources")
+        axs[4].plot(time_r, resources, color="magenta", linestyle="--", label="actual resources")
+        axs[4].fill_between(time_r, 0, resources, color="magenta", alpha=0.5)
+        axs[4].set_ylim(-300, 7500)
+        axs[4].set_yticks([0, 2000, 4000, 6000])
+        axs[4].set_ylabel("(e) CPU shares $(m)$", fontsize=10)
+        axs[4].grid(True)
 
         # Set common x-axis label
-        axs[3].set_xlabel("Time (s)", fontsize=8)
+        axs[4].set_xlabel("Time $(s)$", fontsize=10)
 
         plt.tight_layout()
         plt.xlim(0, 240)
-        plt.savefig("/home/oem/Downloads/control_law.png", bbox_inches="tight")
+        plt.xticks([0, 40, 80, 120, 160, 200, 240])
+        plt.savefig("/home/oem/Downloads/control_law.pdf", bbox_inches="tight")
         plt.show()
-        
-        # CPU for control law
+
+        # Plot CPU values
+        plt.figure(figsize=(4, 2))
+        plt.tick_params(axis='both', labelsize=8)
         plt.plot(cpu_times_array, cpu_values_array, color="black", label="cpu")
-        plt.ylabel("CPU (\%)", fontsize=7)
+        plt.ylabel("CPU $(\%)$", fontsize=10)
+        plt.xlabel("Time $(s)$", fontsize=10)
         plt.grid(True)
         plt.tight_layout()
         plt.xlim(0, 240)
-        plt.savefig("/home/oem/Downloads/cpu.png", bbox_inches="tight")
+        plt.xticks([0, 40, 80, 120, 160, 200, 240])
+        plt.savefig("/home/oem/Downloads/cpu.pdf", bbox_inches="tight")
         plt.show()
+
 
 
 if __name__ == "__main__":
