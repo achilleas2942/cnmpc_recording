@@ -10,7 +10,7 @@ import re
 
 def call_main():
     # Load the bag file
-    bag_file = "/home/oem/Downloads/testing5.bag"
+    bag_file = "/home/oem/Downloads/cpu1.bag"
     b = bagreader(bag_file)
 
     # List of topics to read from the bag file
@@ -64,7 +64,7 @@ def call_main():
         plt.boxplot(cpu_values, labels=app_names, vert=True, patch_artist=True)
         plt.ylabel("CPU $(\%)$", fontsize=10)
         plt.xlabel("$(n,h)$", fontsize=10)
-        plt.xticks(rotation=45, ha="right")
+        plt.xticks(range(1, 11), ['(1,20)', '(2,20)', '(3,20)', '(4,20)', '(5,20)', '(5,10)', '(4,10)', '(3,10)', '(2,10)', '(1,10)'], rotation=45, ha="right")
         plt.title("CPU usage")
         plt.tight_layout()
         plt.savefig("/home/oem/Downloads/cpu_boxplot.pdf", bbox_inches="tight")
