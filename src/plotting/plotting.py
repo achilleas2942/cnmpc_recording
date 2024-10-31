@@ -235,7 +235,7 @@ def call_main():
         axs[0].plot(time_avu, av_uplink, color="blue", label="uplink delay")
         axs[0].set_ylim(0.16, 0.4)
         axs[0].set_yticks([0.20, 0.30, 0.40])
-        axs[0].set_ylabel(r'(a) $\tau_{u} \, (s)$', fontsize=10)
+        axs[0].set_ylabel(r'(a) $\tau_{u}(t) \,\, (s)$', fontsize=10)
         axs[0].grid(True)
 
         # Plot Downlink delay
@@ -243,7 +243,7 @@ def call_main():
         axs[1].plot(time_avd, av_downlink, color="red", label="downlink delay")
         axs[1].set_ylim(0.004, 0.026)
         axs[1].set_yticks([0.005, 0.015, 0.025])
-        axs[1].set_ylabel(r'(b) $\tau_{d} \, (s)$', fontsize=10)
+        axs[1].set_ylabel(r'(b) $\tau_{d}(t) \,\, (s)$', fontsize=10)
         axs[1].grid(True)
 
         # Plot Solver time
@@ -251,7 +251,7 @@ def call_main():
         axs[2].plot(time_s, solver_time_avg, color="green", label="solver time")
         axs[2].set_ylim(-0.005, 0.055)
         axs[2].set_yticks([0.0, 0.025, 0.050])
-        axs[2].set_ylabel(r'(c) $\tau_{r} \, (s)$', fontsize=10)
+        axs[2].set_ylabel(r'(c) $\tau_{r}(t) \,\, (s)$', fontsize=10)
         axs[2].grid(True)
 
         # Plot Round-trip time
@@ -260,7 +260,7 @@ def call_main():
         axs[3].axhline(y=0.274, color="orange", linestyle="--", label="maximum allowable delay")
         axs[3].set_ylim(0.19, 0.31)
         axs[3].set_yticks([0.20, 0.25, 0.30])
-        axs[3].set_ylabel(r'(d) $\tau_{rtt} \, (s)$', fontsize=10)
+        axs[3].set_ylabel(r'(d) $\tau_{rtt}(t) \,\, (s)$', fontsize=10)
         axs[3].grid(True)
         
         # Plot Resources
@@ -269,7 +269,7 @@ def call_main():
         axs[4].fill_between(time_r, 0, resources, color="magenta", alpha=0.5)
         axs[4].set_ylim(-300, 7500)
         axs[4].set_yticks([0, 2000, 4000, 6000])
-        axs[4].set_ylabel("(e) CPU shares $(m)$", fontsize=10)
+        axs[4].set_ylabel(r'(e) $r(t) \,\, (m)$', fontsize=10)
         axs[4].grid(True)
 
         # Set common x-axis label
