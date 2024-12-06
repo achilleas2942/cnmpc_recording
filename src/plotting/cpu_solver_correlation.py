@@ -67,14 +67,15 @@ def call_main():
 
     # Plotting with the desired style
     with plt.style.context(["science", "ieee"]):
-        fig, axs = plt.subplots(2, 1, figsize=(6, 4), sharex=True)
+        fig, axs = plt.subplots(2, 1, figsize=(4, 3), sharex=True)
         
         time_axis = np.arange(len(solver_times)) / 10
+        solver_times = [time / 1000 for time in solver_times]
 
         # Plot solver times
         axs[0].plot(time_axis, solver_times, color='black')
-        axs[0].set_ylim(0, 150)
-        axs[0].set_yticks([0, 50, 100, 150])
+        axs[0].set_ylim(0, 0.15)
+        axs[0].set_yticks([0, 0.05, 0.10, 0.15])
         axs[0].set_ylabel(r'(a) $\tau_\text{p}(t) \,\, (s)$', fontsize=10)
         axs[0].grid(True)
         axs[0].set_title(r'$\tau_\text{p}$ vs CPU', fontsize=10)
