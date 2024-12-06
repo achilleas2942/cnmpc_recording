@@ -273,7 +273,7 @@ def call_main():
         axs[4].grid(True)
 
         # Set common x-axis label
-        axs[4].set_xlabel("Time $(s)$", fontsize=10)
+        axs[4].set_xlabel(r'Time - $t \,\, (s)$', fontsize=10)
 
         plt.tight_layout()
         plt.xlim(0, 240)
