@@ -58,7 +58,7 @@ def process_bag_file(bag_file, topic_list, app_divisors, cpu_values_dict, app_or
                     cpu_values_dict.setdefault(app_name, []).append(cpu_value)
 
 
-def plot_cpu_values_subplots(cpu_values_dict, app_order, output_file):
+def plot_cpu_values_subplots(cpu_values_dict, app_order, output_file1, output_file2):
     """
     Plot CPU values using subplots for better visualization.
     """
@@ -142,12 +142,8 @@ def plot_cpu_values_subplots(cpu_values_dict, app_order, output_file):
 
     # Adjust layout and save the figure
     plt.tight_layout()
-    plt.savefig(output_file, bbox_inches="tight")
-    plt.show()
-
-    # Adjust layout and save the figure
-    plt.tight_layout(rect=[0, 0.05, 1, 1])  # Leave space for shared xlabel
-    plt.savefig(output_file, bbox_inches="tight")
+    plt.savefig(output_file1, bbox_inches="tight")
+    plt.savefig(output_file2, bbox_inches="tight")
     plt.show()
 
 
@@ -188,7 +184,8 @@ def call_main():
     ]
     topic_list = ["/k8s_pod_metrics"]
     divisor_topic = "/equilibrium_resources"
-    output_file = "/home/oem/Downloads/cpu_boxplot_subplots.pdf"
+    output_file1 = "/home/oem/Downloads/cpu_boxplot_subplots.pdf"
+    output_file2 = "/home/oem/Downloads/cpu_boxplot_subplots.png"
 
     cpu_values_dict = {}
     app_divisors = {}
@@ -202,7 +199,7 @@ def call_main():
 
     with plt.style.context(["science", "ieee"]):
         # Plot CPU values using subplots
-        plot_cpu_values_subplots(cpu_values_dict, app_order, output_file)
+        plot_cpu_values_subplots(cpu_values_dict, app_order, output_file1, output_file2)
 
 
 if __name__ == "__main__":
