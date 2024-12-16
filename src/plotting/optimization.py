@@ -99,40 +99,58 @@ def extract_rosbag_data(bag_file, topic="/results", agents_topic="/number_of_age
     )
 
 
-# Function to plot lists of lists
-def plot_data_with_markers(axis, data, title, ylabel, color, alpha=0.4):
-    markers = [
-        "o",
-        "+",
-        "x",
-        "o",
-        "+",
-        "x",
-        "o",
-        "+",
-        "x",
-        "o",
-        "+",
-        "x",
-    ]  # List of marker styles
-    for timestep, values in enumerate(data):
-        for i, value in enumerate(values):
-            marker = markers[i % len(markers)]  # Cycle through the markers
-            axis.scatter(
-                timestep,  # The x-value (timestep)
-                value,  # The y-value
-                color=color,
-                marker=marker,  # Use a different marker for each value
-                alpha=alpha,  # Transparency
-                label="_nolegend_",  # Avoid duplicate legend entries
-            )
+def preprocess_for_lines(data):
+    """
+    Convert lists of lists (scatter format) into a format suitable for line plots.
+    Missing values are replaced with 0.
+
+    Parameters:
+    - data: List of lists where each inner list represents data for a timestep.
+
+    Returns:
+    - List of lists with consistent lengths and missing values replaced with 0.
+    """
+    max_length = max(
+        len(timestep) for timestep in data
+    )  # Find the maximum number of series
+    processed_data = []
+
+    for timestep in data:
+        # Fill missing values with 0
+        processed_timestep = [
+            timestep[i] if i < len(timestep) else 0 for i in range(max_length)
+        ]
+        processed_data.append(processed_timestep)
+
+    return processed_data
+
+
+# Function to plot data as a line
+def plot_multiple_lines(
+    axis, data, title, ylabel, colors, linewidth=1, ylimit=10, ytick=None
+):
+    num_series = len(data[0])  # Number of series
+    timesteps = range(len(data))  # Time steps
+
+    for i in range(num_series):
+        # Extract the i-th series from the data (one value per timestep)
+        series = [timestep[i] for timestep in data]
+        color = colors[i % len(colors)]  # Cycle through colors if needed
+        axis.plot(
+            timesteps, series, color=color, linewidth=linewidth, label=f"Series {i+1}"
+        )
+
+    # Apply custom y-limits and y-ticks
+    axis.set_ylim(0, ylimit)
+    if ytick:
+        axis.set_yticks(ytick)
     axis.grid(True)
     axis.set_title(title, fontsize=10)
     axis.set_ylabel(ylabel, fontsize=10)
 
 
 # Extract data from the rosbag
-bag_file = "/home/oem/Documents/Docker&K8s/Cloud_Operated_Drones_(Ericsson)/Resource_Allocation/cnmpc_resource_allocation/src/optimization_results.bag"
+bag_file = "/home/oem/Documents/Docker&K8s/Cloud_Operated_Drones_(Ericsson)/Resource_Allocation/cnmpc_resource_allocation/src/rosbags/optimization_results.bag"
 (
     num_agents_node_1,
     horizon_node_1,
@@ -145,35 +163,258 @@ bag_file = "/home/oem/Documents/Docker&K8s/Cloud_Operated_Drones_(Ericsson)/Reso
     resources_node_3,
 ) = extract_rosbag_data(bag_file)
 
+num_agents_node_1_processed = preprocess_for_lines(num_agents_node_1)
+num_agents_node_2_processed = preprocess_for_lines(num_agents_node_2)
+num_agents_node_3_processed = preprocess_for_lines(num_agents_node_3)
+
+horizon_node_1_processed = preprocess_for_lines(horizon_node_1)
+horizon_node_2_processed = preprocess_for_lines(horizon_node_2)
+horizon_node_3_processed = preprocess_for_lines(horizon_node_3)
+
+resources_node_1_processed = preprocess_for_lines(resources_node_1)
+resources_node_2_processed = preprocess_for_lines(resources_node_2)
+resources_node_3_processed = preprocess_for_lines(resources_node_3)
+
 # Plotting the data
 with plt.style.context(["science", "ieee"]):
-    fig, axes = plt.subplots(3, 3, figsize=(8, 4), sharex=True)
+    fig, axes = plt.subplots(4, 3, figsize=(8, 4), sharex=True)
 
     # Plot Number of Agents for each node
-    plot_data_with_markers(
-        axes[0, 0], num_agents_node_1, "", r"(a) $n_\text{apc,j}(t)$", "blue"
+    plot_multiple_lines(
+        axes[0, 0],
+        num_agents_node_1_processed,
+        "",
+        r"(a) $n_\text{apc,j}(t)$",
+        colors=[
+            "black",
+            "blue",
+            "red",
+            "green",
+            "orange",
+            "purple",
+            "gray",
+            "cyan",
+            "lime",
+            "olive",
+        ],
+        ylimit=10,
+        ytick=[0, 2, 4, 6, 8, 10],
     )
-    plot_data_with_markers(axes[0, 1], num_agents_node_2, "", "", "red")
-    plot_data_with_markers(axes[0, 2], num_agents_node_3, "", "", "green")
+    plot_multiple_lines(
+        axes[0, 1],
+        num_agents_node_2_processed,
+        "",
+        "",
+        colors=[
+            "black",
+            "blue",
+            "red",
+            "green",
+            "orange",
+            "purple",
+            "gray",
+            "cyan",
+            "lime",
+            "olive",
+        ],
+        ylimit=10,
+        ytick=[0, 2, 4, 6, 8, 10],
+    )
+    plot_multiple_lines(
+        axes[0, 2],
+        num_agents_node_3_processed,
+        "",
+        "",
+        colors=[
+            "black",
+            "blue",
+            "red",
+            "green",
+            "orange",
+            "purple",
+            "gray",
+            "cyan",
+            "lime",
+            "olive",
+        ],
+        ylimit=10,
+        ytick=[0, 2, 4, 6, 8, 10],
+    )
 
     # Plot Prediction Horizon for each node
-    plot_data_with_markers(
-        axes[1, 0], horizon_node_1, "", r"(b) $h_\text{j}(t)$", "blue"
+    plot_multiple_lines(
+        axes[1, 0],
+        horizon_node_1_processed,
+        "",
+        r"(b) $h_\text{j}(t)$",
+        colors=[
+            "black",
+            "blue",
+            "red",
+            "green",
+            "orange",
+            "purple",
+            "gray",
+            "cyan",
+            "lime",
+            "olive",
+        ],
+        ylimit=45,
+        ytick=[0, 10, 20, 30, 40],
     )
-    plot_data_with_markers(axes[1, 1], horizon_node_2, "", "", "red")
-    plot_data_with_markers(axes[1, 2], horizon_node_3, "", "", "green")
+    plot_multiple_lines(
+        axes[1, 1],
+        horizon_node_2_processed,
+        "",
+        "",
+        colors=[
+            "black",
+            "blue",
+            "red",
+            "green",
+            "orange",
+            "purple",
+            "gray",
+            "cyan",
+            "lime",
+            "olive",
+        ],
+        ylimit=45,
+        ytick=[0, 10, 20, 30, 40],
+    )
+    plot_multiple_lines(
+        axes[1, 2],
+        horizon_node_3_processed,
+        "",
+        "",
+        colors=[
+            "black",
+            "blue",
+            "red",
+            "green",
+            "orange",
+            "purple",
+            "gray",
+            "cyan",
+            "lime",
+            "olive",
+        ],
+        ylimit=45,
+        ytick=[0, 10, 20, 30, 40],
+    )
 
     # Plot Resources for each node
-    plot_data_with_markers(
-        axes[2, 0], resources_node_1, "", r"(c) $r_\text{opt,j}(t)$", "blue"
+    plot_multiple_lines(
+        axes[2, 0],
+        resources_node_1_processed,
+        "",
+        r"(c) $r_\text{opt,j}(t)$",
+        colors=[
+            "black",
+            "blue",
+            "red",
+            "green",
+            "orange",
+            "purple",
+            "gray",
+            "cyan",
+            "lime",
+            "olive",
+        ],
+        ylimit=4500,
+        ytick=[0, 1000, 2000, 3000, 4000],
     )
-    plot_data_with_markers(axes[2, 1], resources_node_2, "", "", "red")
-    plot_data_with_markers(axes[2, 2], resources_node_3, "", "", "green")
+    plot_multiple_lines(
+        axes[2, 1],
+        resources_node_2_processed,
+        "",
+        "",
+        colors=[
+            "black",
+            "blue",
+            "red",
+            "green",
+            "orange",
+            "purple",
+            "gray",
+            "cyan",
+            "lime",
+            "olive",
+        ],
+        ylimit=4500,
+        ytick=[0, 1000, 2000, 3000, 4000],
+    )
+    plot_multiple_lines(
+        axes[2, 2],
+        resources_node_3_processed,
+        "",
+        "",
+        colors=[
+            "black",
+            "blue",
+            "red",
+            "green",
+            "orange",
+            "purple",
+            "gray",
+            "cyan",
+            "lime",
+            "olive",
+        ],
+        ylimit=4500,
+        ytick=[0, 1000, 2000, 3000, 4000],
+    )
+
+    # Plot Total Resources for each node
+    summed_values1 = [[sum(values)] for values in resources_node_1]
+    summed_values2 = [[sum(values)] for values in resources_node_2]
+    summed_values3 = [[sum(values)] for values in resources_node_3]
+    # Node 1
+    plot_multiple_lines(
+        axes[3, 0],
+        summed_values1,
+        "",
+        r"(d) $\sum\limits_\text{j=1}^\text{n$_\text{c}$}r_\text{opt,j}(t)$",
+        colors=["black"],
+        ylimit=13000,
+        ytick=[0, 2000, 4000, 6000, 8000, 10000, 12000],
+    )
+    axes[3, 0].axhline(
+        y=12000, color="red", linestyle="--", linewidth=1, label="Threshold (12000)"
+    )
+
+    # Node 2
+    plot_multiple_lines(
+        axes[3, 1],
+        summed_values2,
+        "",
+        "",
+        colors=["black"],
+        ylimit=13000,
+        ytick=[0, 2000, 4000, 6000, 8000, 10000, 12000],
+    )
+    axes[3, 1].axhline(
+        y=12000, color="red", linestyle="--", linewidth=1, label="Threshold (12000)"
+    )
+
+    # Node 3
+    plot_multiple_lines(
+        axes[3, 2],
+        summed_values3,
+        "",
+        "",
+        colors=["black"],
+        ylimit=13000,
+        ytick=[0, 2000, 4000, 6000, 8000, 10000, 12000],
+    )
+    axes[3, 2].axhline(
+        y=8000, color="red", linestyle="--", linewidth=1, label="Threshold (8000)"
+    )
 
     # Set x-axis label for the bottom row
-    axes[2, 0].set_xlabel(r"Time step - Node 1", fontsize=10)
-    axes[2, 1].set_xlabel(r"Time step - Node 2", fontsize=10)
-    axes[2, 2].set_xlabel(r"Time step - Node 3", fontsize=10)
+    axes[3, 0].set_xlabel(r"Time step - Node 1", fontsize=10)
+    axes[3, 1].set_xlabel(r"Time step - Node 2", fontsize=10)
+    axes[3, 2].set_xlabel(r"Time step - Node 3", fontsize=10)
 
     plt.tight_layout()
     plt.savefig("/home/oem/Downloads/optimizer.pdf", bbox_inches="tight")
