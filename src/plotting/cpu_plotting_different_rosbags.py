@@ -125,14 +125,25 @@ def plot_cpu_values_subplots(cpu_values_dict, app_order, output_file):
     axes[0].boxplot(cpu_values_1, labels=labels_subplot_1, vert=True, patch_artist=True)
     axes[0].grid(True)
     axes[0].set_ylabel(r"CPU $(\%)$", fontsize=10)
-    axes[0].tick_params(axis="both", labelsize=10, rotation=45)
+    axes[0].set_ylim(0, 70)
+    axes[0].tick_params(
+        axis="x", labelrotation=45, labelsize=10
+    )  # Rotate x-axis tick labels
 
     # Plot for subplot 2
     axes[1].boxplot(cpu_values_2, labels=labels_subplot_2, vert=True, patch_artist=True)
     axes[1].grid(True)
     axes[1].set_ylabel(r"CPU $(\%)$", fontsize=10)
-    axes[1].tick_params(axis="both", labelsize=10, rotation=45)
+    axes[1].set_ylim(0, 70)
+    axes[1].tick_params(
+        axis="x", labelrotation=45, labelsize=10
+    )  # Rotate x-axis tick labels
     axes[1].set_xlabel(r"$(n_\text{apc,j},h_\text{j})$", fontsize=10)
+
+    # Adjust layout and save the figure
+    plt.tight_layout()
+    plt.savefig(output_file, bbox_inches="tight")
+    plt.show()
 
     # Adjust layout and save the figure
     plt.tight_layout(rect=[0, 0.05, 1, 1])  # Leave space for shared xlabel
