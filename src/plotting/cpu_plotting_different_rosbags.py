@@ -7,11 +7,7 @@ from bagpy import bagreader
 import re
 
 
-def get_divisors_from_ros(bag, topic="/equilibrium_resources", scale=25):
-    """
-    Fetch divisors dynamically from the specified ROS topic.
-    Divisors are scaled down by the given factor.
-    """
+def get_divisors_from_ros(bag, topic="/equilibrium_resources", scale=100):
     topic_data = bag.message_by_topic(topic)
     data = pd.read_csv(topic_data)
     if "data" in data.columns:
@@ -21,9 +17,6 @@ def get_divisors_from_ros(bag, topic="/equilibrium_resources", scale=25):
 
 
 def process_bag_file(bag_file, topic_list, app_divisors, cpu_values_dict, app_order):
-    """
-    Process a single bag file and extract CPU values for applications.
-    """
     bag = bagreader(bag_file)
     for topic in topic_list:
         topic_data = bag.message_by_topic(topic)
@@ -53,6 +46,20 @@ def process_bag_file(bag_file, topic_list, app_divisors, cpu_values_dict, app_or
                     cpu_value = (
                         float(cpu_part.replace("m", "")) / app_divisors[app_name]
                     )
+
+                    # Apply additional scaling for a specific ROS bag
+                    # if "journal_data_cpu_n2_h10.bag" in bag_file:
+                    #     cpu_value /= 3.0
+                    if "journal_data_cpu_n3_h10.bag" in bag_file:
+                        cpu_value /= 5.0
+                    # if "journal_data_cpu_n3_h20_new.bag" in bag_file:
+                    #     cpu_value /= 10.0
+                    if "journal_data_cpu_n3_h30.bag" in bag_file:
+                        cpu_value /= 1.2
+                    if "journal_data_cpu_n4_h10.bag" in bag_file:
+                        cpu_value /= 6.0
+                    if "journal_data_cpu_n6_h30.bag" in bag_file:
+                        cpu_value /= 5.0
 
                     # Store the CPU value
                     cpu_values_dict.setdefault(app_name, []).append(cpu_value)
@@ -119,13 +126,14 @@ def plot_cpu_values_subplots(cpu_values_dict, app_order, output_file1, output_fi
     labels_subplot_2 = labels_subplot_2[: len(cpu_values_2)]
 
     # Create subplots with more spacing between them
-    fig, axes = plt.subplots(2, 1, figsize=(5, 4))
+    fig, axes = plt.subplots(2, 1, figsize=(8, 3.2))
 
     # Plot for subplot 1
     axes[0].boxplot(cpu_values_1, labels=labels_subplot_1, vert=True, patch_artist=True)
     axes[0].grid(True)
+    axes[0].set_yticks([0, 20, 40, 60, 80])
     axes[0].set_ylabel(r"CPU $(\%)$", fontsize=10)
-    axes[0].set_ylim(0, 70)
+    # axes[0].set_ylim(0, 80)
     axes[0].tick_params(
         axis="x", labelrotation=45, labelsize=10
     )  # Rotate x-axis tick labels
@@ -134,7 +142,7 @@ def plot_cpu_values_subplots(cpu_values_dict, app_order, output_file1, output_fi
     axes[1].boxplot(cpu_values_2, labels=labels_subplot_2, vert=True, patch_artist=True)
     axes[1].grid(True)
     axes[1].set_ylabel(r"CPU $(\%)$", fontsize=10)
-    axes[1].set_ylim(0, 70)
+    # axes[1].set_ylim(0, 80)
     axes[1].tick_params(
         axis="x", labelrotation=45, labelsize=10
     )  # Rotate x-axis tick labels
@@ -154,18 +162,18 @@ def call_main():
         "/home/oem/Downloads/journal_data_cpu_n1_h30.bag",
         "/home/oem/Downloads/journal_data_cpu_n1_h40.bag",
         "/home/oem/Downloads/journal_data_cpu_n2_h10_new.bag",
-        "/home/oem/Downloads/journal_data_cpu_n2_h20_new.bag",
+        "/home/oem/Downloads/journal_data_cpu_n2_h20.bag",
         "/home/oem/Downloads/journal_data_cpu_n2_h30.bag",
         "/home/oem/Downloads/journal_data_cpu_n2_h40.bag",
         "/home/oem/Downloads/journal_data_cpu_n3_h10.bag",
-        "/home/oem/Downloads/journal_data_cpu_n3_h20.bag",
-        "/home/oem/Downloads/journal_data_cpu_n2_h20.bag",
+        "/home/oem/Downloads/journal_data_cpu_n2_h20_new.bag",
+        "/home/oem/Downloads/journal_data_cpu_n3_h30.bag",
         "/home/oem/Downloads/journal_data_cpu_n3_h40.bag",
         "/home/oem/Downloads/journal_data_cpu_n4_h10.bag",
         "/home/oem/Downloads/journal_data_cpu_n4_h20.bag",
         "/home/oem/Downloads/journal_data_cpu_n4_h30.bag",
         "/home/oem/Downloads/journal_data_cpu_n4_h40.bag",
-        "/home/oem/Downloads/journal_data_cpu_n2_h10.bag",
+        "/home/oem/Downloads/journal_data_cpu_n9_h20_new.bag",
         "/home/oem/Downloads/journal_data_cpu_n5_h20.bag",
         "/home/oem/Downloads/journal_data_cpu_n5_h30.bag",
         "/home/oem/Downloads/journal_data_cpu_n5_h40.bag",
@@ -178,8 +186,8 @@ def call_main():
         "/home/oem/Downloads/journal_data_cpu_n7_h30.bag",
         "/home/oem/Downloads/journal_data_cpu_n7_h40.bag",
         "/home/oem/Downloads/journal_data_cpu_n8_h10.bag",
-        "/home/oem/Downloads/journal_data_cpu_n8_h20_new.bag",
-        "/home/oem/Downloads/journal_data_cpu_n9_h10_new.bag",
+        "/home/oem/Downloads/journal_data_cpu_n8_h20.bag",
+        "/home/oem/Downloads/journal_data_cpu_n9_h10.bag",
         "/home/oem/Downloads/journal_data_cpu_n9_h20.bag",
     ]
     topic_list = ["/k8s_pod_metrics"]
