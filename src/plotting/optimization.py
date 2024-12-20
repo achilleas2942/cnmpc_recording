@@ -99,17 +99,46 @@ def extract_rosbag_data(bag_file, topic="/results", agents_topic="/number_of_age
     )
 
 
+# Function to extract additional data for available resources
+def extract_available_resources(bag_file, topic="/available_resource"):
+    available_resources = []  # To store available resource data for all timesteps
+
+    with rosbag.Bag(bag_file, "r") as bag:
+        for topic, msg, t in bag.read_messages(topics=[topic]):
+            # Extract the `data` array from the message
+            available_resources.append(msg.data)
+
+    return available_resources
+
+
+def fill_data_between_points(resource_data, target_length):
+    current_length = len(resource_data)
+    if current_length >= target_length:
+        return resource_data  # No need to fill if already at target length
+
+    filled_data = []
+    # Calculate the number of steps to insert between each data point
+    steps_to_add = (target_length - current_length) // (current_length - 1)
+    leftover_steps = (target_length - current_length) % (current_length - 1)
+
+    for i in range(len(resource_data) - 1):
+        # Add the current value
+        filled_data.append(resource_data[i])
+
+        # Duplicate the current value 'steps_to_add' times
+        filled_data.extend([resource_data[i]] * steps_to_add)
+
+        # Distribute leftover steps among the initial gaps
+        if i < leftover_steps:
+            filled_data.append(resource_data[i])
+
+    # Append the last value
+    filled_data.append(resource_data[-1])
+
+    return filled_data
+
+
 def preprocess_for_lines(data):
-    """
-    Convert lists of lists (scatter format) into a format suitable for line plots.
-    Missing values are replaced with 0.
-
-    Parameters:
-    - data: List of lists where each inner list represents data for a timestep.
-
-    Returns:
-    - List of lists with consistent lengths and missing values replaced with 0.
-    """
     max_length = max(
         len(timestep) for timestep in data
     )  # Find the maximum number of series
@@ -150,7 +179,7 @@ def plot_multiple_lines(
 
 
 # Extract data from the rosbag
-bag_file = "/home/oem/Documents/Docker&K8s/Cloud_Operated_Drones_(Ericsson)/Resource_Allocation/cnmpc_resource_allocation/src/rosbags/optimization_results.bag"
+bag_file = "/home/oem/Downloads/optimization_results.bag"
 (
     num_agents_node_1,
     horizon_node_1,
@@ -174,6 +203,21 @@ horizon_node_3_processed = preprocess_for_lines(horizon_node_3)
 resources_node_1_processed = preprocess_for_lines(resources_node_1)
 resources_node_2_processed = preprocess_for_lines(resources_node_2)
 resources_node_3_processed = preprocess_for_lines(resources_node_3)
+
+# Extract available resources from rosbag
+available_resources = extract_available_resources(bag_file)
+target_length = 37
+
+# Process each node's data and fill missing points
+available_resource_node_1 = fill_data_between_points(
+    [step[0] if len(step) > 0 else 0 for step in available_resources], target_length
+)
+available_resource_node_2 = fill_data_between_points(
+    [step[1] if len(step) > 1 else 0 for step in available_resources], target_length
+)
+available_resource_node_3 = fill_data_between_points(
+    [step[2] if len(step) > 2 else 0 for step in available_resources], target_length
+)
 
 # Plotting the data
 with plt.style.context(["science", "ieee"]):
@@ -379,8 +423,14 @@ with plt.style.context(["science", "ieee"]):
         ylimit=13000,
         ytick=[0, 2000, 4000, 6000, 8000, 10000, 12000],
     )
-    axes[3, 0].axhline(
-        y=12000, color="red", linestyle="--", linewidth=1, label="Threshold (12000)"
+    print(len(available_resource_node_1))
+    axes[3, 0].plot(
+        range(len(available_resource_node_1)),
+        available_resource_node_1,
+        color="red",
+        linestyle="--",
+        linewidth=1,
+        label="Available Resource",
     )
 
     # Node 2
@@ -393,8 +443,13 @@ with plt.style.context(["science", "ieee"]):
         ylimit=13000,
         ytick=[0, 2000, 4000, 6000, 8000, 10000, 12000],
     )
-    axes[3, 1].axhline(
-        y=12000, color="red", linestyle="--", linewidth=1, label="Threshold (12000)"
+    axes[3, 1].plot(
+        range(len(available_resource_node_2)),
+        available_resource_node_2,
+        color="red",
+        linestyle="--",
+        linewidth=1,
+        label="Available Resource",
     )
 
     # Node 3
@@ -407,8 +462,13 @@ with plt.style.context(["science", "ieee"]):
         ylimit=13000,
         ytick=[0, 2000, 4000, 6000, 8000, 10000, 12000],
     )
-    axes[3, 2].axhline(
-        y=8000, color="red", linestyle="--", linewidth=1, label="Threshold (8000)"
+    axes[3, 2].plot(
+        range(len(available_resource_node_3)),
+        available_resource_node_3,
+        color="red",
+        linestyle="--",
+        linewidth=1,
+        label="Available Resource",
     )
 
     # Set x-axis label for the bottom row
@@ -417,6 +477,6 @@ with plt.style.context(["science", "ieee"]):
     axes[3, 2].set_xlabel(r"Time step - Node 3", fontsize=10)
 
     plt.tight_layout()
-    plt.savefig("/home/oem/Downloads/optimizer.pdf", bbox_inches="tight")
-    plt.savefig("/home/oem/Downloads/optimizer.png", bbox_inches="tight")
+    plt.savefig("/home/oem/Downloads/optimizer2.pdf", bbox_inches="tight")
+    plt.savefig("/home/oem/Downloads/optimizer2.png", bbox_inches="tight")
     plt.show()
