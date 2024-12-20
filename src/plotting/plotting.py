@@ -279,6 +279,7 @@ def call_main():
         plt.xlim(0, 240)
         plt.xticks([0, 40, 80, 120, 160, 200, 240])
         plt.savefig("/home/oem/Downloads/control_law.pdf", bbox_inches="tight")
+        plt.savefig("/home/oem/Downloads/control_law.png", bbox_inches="tight")
         plt.show()
 
         # Plot CPU values
