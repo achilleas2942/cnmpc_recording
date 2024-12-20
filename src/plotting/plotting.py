@@ -292,6 +292,7 @@ def call_main():
         plt.xlim(0, 240)
         plt.xticks([0, 40, 80, 120, 160, 200, 240])
         plt.savefig("/home/oem/Downloads/cpu.pdf", bbox_inches="tight")
+        plt.savefig("/home/oem/Downloads/cpu.png", bbox_inches="tight")
         plt.show()
 
 
