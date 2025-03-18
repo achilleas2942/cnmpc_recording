@@ -142,6 +142,7 @@ def call_main():
         time_s, solver_time, kind="linear", fill_value="extrapolate"
     )(common_time)
     round_trip_time = av_downlink_interp + av_uplink_interp + solver_time_interp
+    av_comm_time = av_downlink_interp + av_uplink_interp
 
     if "/equilibrium_resources" in data_storage:
         equilibrium_resources = data_storage["/equilibrium_resources"]
@@ -223,57 +224,69 @@ def call_main():
     solver_time_avg = sliding_window_average(solver_time)
     round_trip_time_avg = sliding_window_average(round_trip_time)
 
+    # Define a common time base
+    min_time_new = float(max(time_d[0], time_u[0]))
+    max_time_new = float(min(time_d[-1], time_u[-1]))
+    num_points_new = min(len(time_d), len(time_u))
+
+    common_time_new = np.linspace(min_time_new, max_time_new, num_points_new)
+
+    downlink_interp = interp1d(
+        time_d, downlink_delay, kind="linear", fill_value="extrapolate"
+    )(common_time_new)
+    uplink_interp = interp1d(
+        time_u, uplink_delay, kind="linear", fill_value="extrapolate"
+    )(common_time_new)
+    solver_time_interp_new = interp1d(
+        time_s, solver_time, kind="linear", fill_value="extrapolate"
+    )(common_time_new)
+    comm_time = downlink_interp + uplink_interp
+    round_trip_time_new = downlink_interp + uplink_interp + solver_time_interp_new
+
     # Plotting
     with plt.style.context(["science", "ieee"]):
-        fig, axs = plt.subplots(5, 1, figsize=(8, 5.2), sharex=True)
+        fig, axs = plt.subplots(4, 1, figsize=(8, 4.8), sharex=True)
 
         for ax in axs:
             ax.tick_params(axis='both', labelsize=8)
 
-        # Plot Uplink delay
-        axs[0].plot(time_u, uplink_delay, color="blue", alpha=0.5, label="average")
-        axs[0].plot(time_avu, av_uplink, color="blue", label="uplink delay")
-        axs[0].set_ylim(0.08, 0.3)
-        axs[0].set_yticks([0.08, 0.19, 0.3])
-        axs[0].set_ylabel(r'(a) $\tau_{u}(t) \,\, (s)$', fontsize=10)
+        # Plot Communication delay
+        axs[0].plot(common_time_new, comm_time, color="blue", alpha=0.4, label="average")
+        axs[0].plot(common_time, av_comm_time, color="blue", label="uplink delay")
+        axs[0].set_ylim(0.12, 0.36)
+        axs[0].set_yticks([0.12, 0.24, 0.36])
+        axs[0].set_ylabel(r'(a) $\tau_{u}(t)+\tau_{d}(t) \,\, (s)$', fontsize=10)
         axs[0].grid(True)
 
-        # Plot Downlink delay
-        axs[1].plot(time_d, downlink_delay, color="red", alpha=0.5, label="average")
-        axs[1].plot(time_avd, av_downlink, color="red", label="downlink delay")
-        axs[1].set_ylim(0.056, 0.074)
-        axs[1].set_yticks([0.056, 0.065, 0.074])
-        axs[1].set_ylabel(r'(b) $\tau_{d}(t) \,\, (s)$', fontsize=10)
+        # Plot Solver time
+        axs[1].plot(time_s, solver_time, color="red", alpha=0.4, label="average")
+        axs[1].plot(time_s, solver_time_avg, color="red", label="solver time")
+        axs[1].set_ylim(-0.002, 0.06)
+        axs[1].set_yticks([0.0, 0.03, 0.06])
+        axs[1].set_ylabel(r'(b) $\tau_{r}(t) \,\, (s)$', fontsize=10)
         axs[1].grid(True)
 
-        # Plot Solver time
-        axs[2].plot(time_s, solver_time, color="green", alpha=0.5, label="average")
-        axs[2].plot(time_s, solver_time_avg, color="green", label="solver time")
-        axs[2].set_ylim(-0.002, 0.06)
-        axs[2].set_yticks([0.0, 0.03, 0.06])
-        axs[2].set_ylabel(r'(c) $\tau_{r}(t) \,\, (s)$', fontsize=10)
-        axs[2].grid(True)
-
         # Plot Round-trip time
-        axs[3].plot(common_time, round_trip_time, color="black", alpha=0.5, label="average")
-        axs[3].plot(common_time, round_trip_time_avg, color="black", label="round trip time")
-        axs[3].axhline(y=0.274, color="orange", linestyle="--", label="maximum allowable delay")
-        axs[3].set_ylim(0.15, 0.3)
-        axs[3].set_yticks([0.15, 0.20, 0.25, 0.30])
-        axs[3].set_ylabel(r'(d) $\tau_{rtt}(t) \,\, (s)$', fontsize=10)
-        axs[3].grid(True)
+        axs[2].plot(common_time, round_trip_time, color="green", alpha=0.4, label="average")
+        axs[2].plot(common_time, round_trip_time_avg, color="green", label="round trip time")
+        axs[2].plot(common_time_new, round_trip_time_new, color="green", alpha=0.2, label="average_comm")
+        axs[2].axhline(y=0.274, color="orange", linestyle="--", label="maximum allowable delay")
+        axs[2].set_ylim(0.14, 0.38)
+        axs[2].set_yticks([0.14, 0.22, 0.30, 0.38])
+        axs[2].set_ylabel(r'(c) $\tau_{rtt}(t) \,\, (s)$', fontsize=10)
+        axs[2].grid(True)
         
         # Plot Resources
-        axs[4].plot(time_r, time_resources, color="magenta", label="resources")
-        axs[4].plot(time_r, resources, color="magenta", linestyle="--", label="actual resources")
-        axs[4].fill_between(time_r, 0, resources, color="magenta", alpha=0.5)
-        axs[4].set_ylim(-300, 7500)
-        axs[4].set_yticks([0, 2000, 4000, 6000])
-        axs[4].set_ylabel(r'(e) $r(t) \,\, (m)$', fontsize=10)
-        axs[4].grid(True)
+        axs[3].plot(time_r, time_resources, color="black", label="resources")
+        axs[3].plot(time_r, resources, color="black", linestyle="--", label="actual resources")
+        axs[3].fill_between(time_r, 0, resources, color="black", alpha=0.4)
+        axs[3].set_ylim(-300, 7500)
+        axs[3].set_yticks([0, 2000, 4000, 6000])
+        axs[3].set_ylabel(r'(d) $r(t) \,\, (m)$', fontsize=10)
+        axs[3].grid(True)
 
         # Set common x-axis label
-        axs[4].set_xlabel(r'Time - $t \,\, (s)$', fontsize=10)
+        axs[3].set_xlabel(r'Time - $t \,\, (s)$', fontsize=10)
 
         plt.tight_layout()
         plt.xlim(0, 240)
@@ -281,21 +294,6 @@ def call_main():
         plt.savefig("/home/oem/Downloads/control_law.pdf", bbox_inches="tight")
         plt.savefig("/home/oem/Downloads/control_law.png", bbox_inches="tight")
         plt.show()
-
-        # Plot CPU values
-        plt.figure(figsize=(4, 2))
-        plt.tick_params(axis='both', labelsize=8)
-        plt.plot(cpu_times_array, cpu_values_array, color="black", label="cpu")
-        plt.ylabel("CPU $(\%)$", fontsize=10)
-        plt.xlabel("Time $(s)$", fontsize=10)
-        plt.grid(True)
-        plt.tight_layout()
-        plt.xlim(0, 240)
-        plt.xticks([0, 40, 80, 120, 160, 200, 240])
-        plt.savefig("/home/oem/Downloads/cpu.pdf", bbox_inches="tight")
-        plt.savefig("/home/oem/Downloads/cpu.png", bbox_inches="tight")
-        plt.show()
-
 
 
 if __name__ == "__main__":
